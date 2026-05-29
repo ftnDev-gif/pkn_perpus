@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Eprints Skripsi</title>
     @vite('resources/css/app.css')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans p-6">
 
@@ -16,13 +17,28 @@
             </div>
             
             <div class="flex gap-2">
-                <input type="text" placeholder="Cari NIM / Nama..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
-                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                    Cari
-                </button>
+                <form method="GET" action="{{ url('/skripsi') }}" class="flex gap-2">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari NIM / Nama / Judul..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 outline-none w-64">
+                    
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        Cari
+                    </button>
+                    
+                    @if(request('search'))
+                        <a href="{{ url('/skripsi') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                            Reset
+                        </a>
+                    @endif
+                </form>
             </div>
         </div>
 
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">Statistik Skripsi per Fakultas (2025)</h2>
+            <div class="relative h-72 w-full">
+                <canvas id="skripsiChart"></canvas>
+            </div>
+        </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -36,76 +52,81 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 text-sm">
-                        
+                        @foreach($dataSkripsi as $skripsi)
                         <tr class="hover:bg-gray-50 transition">
                             <td class="p-4">
-                                <div class="font-medium text-gray-900">Hadya Cintya Pralapita</div>
-                                <div class="text-gray-500 text-xs mt-0.5">NIM: D500220044</div>
+                                <div class="font-medium text-gray-900">{{ $skripsi->Mahasiswa }}</div>
+                                <div class="text-gray-500 text-xs mt-0.5">NIM: {{ $skripsi->NIM }}</div>
                             </td>
                             <td class="p-4 max-w-md">
-                                <div class="font-medium text-gray-900 truncate" title="Analisis Uji Nyala Biogas Dari Variasi...">
-                                    Analisis Uji Nyala Biogas Dari Variasi ...
+                                <div class="font-medium text-gray-900 truncate" title="{{ $skripsi->Judul }}">
+                                    {{ $skripsi->Judul }}
                                 </div>
-                                <div class="text-gray-500 text-xs mt-0.5">Pembimbing: Muhammad Mujibburohim</div>
+                                <div class="text-gray-500 text-xs mt-0.5">Pembimbing: {{ $skripsi->Dosen_Pembimbing }}</div>
                             </td>
                             <td class="p-4">
-                                <div class="text-gray-900">Teknik Kimia</div>
-                                <div class="text-gray-500 text-xs mt-0.5">Tahun: 2026</div>
+                                <div class="text-gray-900">{{ $skripsi->Fakultas }}</div>
+                                <div class="text-gray-500 text-xs mt-0.5">Tahun: {{ $skripsi->lastmod_year }}</div>
                             </td>
                             <td class="p-4 text-center">
-                                <span class="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                                    Publish
+                                <span class="px-2.5 py-1 text-xs font-medium {{ $skripsi->status_keterangan == 'Publish' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }} rounded-full">
+                                    {{ $skripsi->status_keterangan }}
                                 </span>
                             </td>
                             <td class="p-4 text-center">
-                                <a href="http://eprints.ums.ac.id/ID_EPRINT" target="_blank" class="inline-block text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                                <a href="{{ $skripsi->Link }}" target="_blank" class="inline-block text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-medium transition">
                                     Lihat Eprint
                                 </a>
                             </td>
                         </tr>
-
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="p-4">
-                                <div class="font-medium text-gray-900">Faris 'Adilah</div>
-                                <div class="text-gray-500 text-xs mt-0.5">NIM: D100160104</div>
-                            </td>
-                            <td class="p-4 max-w-md">
-                                <div class="font-medium text-gray-900 truncate" title="Pengaruh Campuran Silica Fume Sebagai...">
-                                    Pengaruh Campuran Silica Fume Seba...
-                                </div>
-                                <div class="text-gray-500 text-xs mt-0.5">Pembimbing: Ir. Aliem Sudjatmiko, M.T.</div>
-                            </td>
-                            <td class="p-4">
-                                <div class="text-gray-900">Fakultas Teknik</div>
-                                <div class="text-gray-500 text-xs mt-0.5">Tahun: 2020</div>
-                            </td>
-                            <td class="p-4 text-center">
-                                <span class="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                                    Publish
-                                </span>
-                            </td>
-                            <td class="p-4 text-center">
-                                <a href="http://eprints.ums.ac.id/ID_EPRINT" target="_blank" class="inline-block text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                                    Lihat Eprint
-                                </a>
-                            </td>
-                        </tr>
-
+                        @endforeach
                     </tbody>
                 </table>
             </div>
             
             <div class="p-4 border-t border-gray-200 text-sm text-gray-500 flex justify-between items-center">
-                <span>Menampilkan 1 hingga 2 dari ribuan data</span>
-                <div class="flex gap-1">
-                    <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50" disabled>Sebelumnya</button>
-                    <button class="px-3 py-1 border border-gray-300 rounded bg-blue-50 text-blue-600 font-medium">1</button>
-                    <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100">2</button>
-                    <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100">Selanjutnya</button>
-                </div>
+                {{ $dataSkripsi->links() }}
             </div>
         </div>
     </div>
 
+    <script>
+        const ctx = document.getElementById('skripsiChart').getContext('2d');
+        
+        const labels = {!! json_encode($chartLabels) !!};
+        const dataValues = {!! json_encode($chartValues) !!};
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Jumlah Skripsi',
+                    data: dataValues,
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
