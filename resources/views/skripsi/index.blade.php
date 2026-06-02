@@ -17,14 +17,35 @@
             </div>
             
             <div class="flex gap-2">
-                <form method="GET" action="{{ url('/skripsi') }}" class="flex gap-2">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari NIM / Nama / Judul..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 outline-none w-64">
+                <form method="GET" action="{{ url('/skripsi') }}" class="flex flex-wrap gap-2 items-center">
+    
+                    <select name="prodi" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
+                        <option value="">Semua Prodi/Fakultas</option>
+                        <option value="D500" {{ request('prodi') == 'D500' ? 'selected' : '' }}>Teknik Kimia (D500)</option>
+                        <option value="D100" {{ request('prodi') == 'D100' ? 'selected' : '' }}>Teknik Sipil (D100)</option>
+                        <option value="D200" {{ request('prodi') == 'D200' ? 'selected' : '' }}>Teknik Mesin (D200)</option>
+                        
+                        <option value="L200" {{ request('prodi') == 'L200' ? 'selected' : '' }}>Teknik Informatika (L200)</option>
+                        <option value="L100" {{ request('prodi') == 'L100' ? 'selected' : '' }}>Ilmu Komunikasi (L100)</option>
+
+                        <option value="J500" {{ request('prodi') == 'J500' ? 'selected' : '' }}>Kedokteran (J500)</option>
+                        <option value="K100" {{ request('prodi') == 'K100' ? 'selected' : '' }}>Farmasi (K100)</option>
+                        <option value="B100" {{ request('prodi') == 'B100' ? 'selected' : '' }}>Manajemen (B100)</option>
+                    </select>
+
+                    <div class="flex items-center gap-1">
+                        <input type="number" name="start_year" value="{{ request('start_year', '2015') }}" placeholder="Mulai" class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-24 outline-none">
+                        <span class="text-gray-500 font-medium">-</span>
+                        <input type="number" name="end_year" value="{{ request('end_year', '2026') }}" placeholder="Akhir" class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-24 outline-none">
+                    </div>
+
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari NIM/Nama/Judul..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48 outline-none">
                     
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                        Cari
+                        Filter Data
                     </button>
                     
-                    @if(request('search'))
+                    @if(request('search') || request('prodi') || request('start_year') != '2015' || request('end_year') != '2026')
                         <a href="{{ url('/skripsi') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
                             Reset
                         </a>
@@ -34,7 +55,9 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">Statistik Skripsi per Fakultas (2025)</h2>
+            <h2 class="text-lg font-bold text-gray-800 mb-4">
+                Statistik Skripsi per Fakultas ({{ request('start_year', '2015') }} - {{ request('end_year', '2026') }})
+            </h2>
             <div class="relative h-72 w-full">
                 <canvas id="skripsiChart"></canvas>
             </div>

@@ -10,26 +10,39 @@ class SkripsiController extends Controller
 {
     public function index(Request $request) 
     {
+        // 1. Tangkap semua input dari form UI
         $search = $request->input('search');
-        
-        $searchCondition = "";
-        $bindings = [];
+        $prodi = $request->input('prodi');
+        $start_year = $request->input('start_year', '2015'); // Tahun bawaan dari Pak Asharul
+        $end_year = $request->input('end_year', '2026');
 
+        // 2. Siapkan pondasi kondisi SQL untuk Rentang Tahun
+        $whereClause = " WHERE e.date_year BETWEEN :start_year AND :end_year ";
+        $bindings = [
+            'start_year' => $start_year,
+            'end_year' => $end_year,
+        ];
+
+        // 3. Jika user memilih Prodi spesifik, tambahkan ke SQL
+        if ($prodi) {
+            $whereClause .= " AND ed.divisions = :prodi ";
+            $bindings['prodi'] = $prodi;
+        }
+
+        // 4. Jika user mengetik kata kunci pencarian, tambahkan ke SQL
         if ($search) {
-            $searchCondition = " AND (
+            $whereClause .= " AND (
                 e.title LIKE :search1 
                 OR e.id_number LIKE :search2 
                 OR CONCAT(IFNULL(mahasiswa.creators_name_given, ''), ' ', IFNULL(mahasiswa.creators_name_family, '')) LIKE :search3
             ) ";
-            
             $searchTerm = '%' . $search . '%';
-            $bindings = [
-                'search1' => $searchTerm,
-                'search2' => $searchTerm,
-                'search3' => $searchTerm,
-            ];
+            $bindings['search1'] = $searchTerm;
+            $bindings['search2'] = $searchTerm;
+            $bindings['search3'] = $searchTerm;
         }
 
+        // 5. Eksekusi Query
         $dataSkripsi = DB::select("
             SELECT 
                 CONCAT('http://eprints.ums.ac.id/', e.eprintid) AS Link,
@@ -51,7 +64,7 @@ class SkripsiController extends Controller
                     ELSE 'Lainnya'
                 END AS Fakultas,
 
-                e.lastmod_year, 
+                e.date_year AS lastmod_year, /* Disamakan aliasnya agar frontend tidak error */
                 
                 CASE 
                     WHEN e.eprint_status = 'archive' THEN 'Publish' 
@@ -77,17 +90,14 @@ class SkripsiController extends Controller
                 WHERE ec.pos = 1 
             ) AS dosen ON dosen.eprintid = ed.eprintid
 
-            WHERE 
-                e.lastmod_year = '2025'
-                
-                
-                $searchCondition
+            /* Masukkan seluruh kondisi dinamis yang sudah kita rakit di atas ke sini */
+            $whereClause
 
             GROUP BY 
                 ed.divisions, 
                 Fakultas,
                 e.eprintid,
-                e.lastmod_year, 
+                e.date_year, 
                 e.eprint_status, 
                 e.id_number, 
                 e.title,
