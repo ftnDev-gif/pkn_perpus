@@ -19,36 +19,32 @@
             <div class="flex gap-2">
                 <form method="GET" action="{{ url('/skripsi') }}" class="flex flex-wrap gap-2 items-center">
     
+                    <!-- Dropdown Otomatis dari Kamus Reyhan -->
                     <select name="prodi" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
                         <option value="">Semua Prodi/Fakultas</option>
-                        <option value="D500" {{ request('prodi') == 'D500' ? 'selected' : '' }}>Teknik Kimia (D500)</option>
-                        <option value="D100" {{ request('prodi') == 'D100' ? 'selected' : '' }}>Teknik Sipil (D100)</option>
-                        <option value="D200" {{ request('prodi') == 'D200' ? 'selected' : '' }}>Teknik Mesin (D200)</option>
-                        
-                        <option value="L200" {{ request('prodi') == 'L200' ? 'selected' : '' }}>Teknik Informatika (L200)</option>
-                        <option value="L100" {{ request('prodi') == 'L100' ? 'selected' : '' }}>Ilmu Komunikasi (L100)</option>
-
-                        <option value="J500" {{ request('prodi') == 'J500' ? 'selected' : '' }}>Kedokteran (J500)</option>
-                        <option value="K100" {{ request('prodi') == 'K100' ? 'selected' : '' }}>Farmasi (K100)</option>
-                        <option value="B100" {{ request('prodi') == 'B100' ? 'selected' : '' }}>Manajemen (B100)</option>
+                        @foreach($prodiMap as $kode => $nama_prodi)
+                            <option value="{{ $kode }}" {{ request('prodi') == $kode ? 'selected' : '' }}>
+                                {{ $nama_prodi }} ({{ $kode }})
+                            </option>
+                        @endforeach
                     </select>
 
+                    <!-- Rentang Tahun Tetap Milikmu -->
                     <div class="flex items-center gap-1">
-                        <input type="number" name="start_year" value="{{ request('start_year', '2015') }}" placeholder="Mulai" class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-24 outline-none">
+                        <input type="number" name="start_year" value="{{ request('start_year', '2016') }}" placeholder="Mulai" class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-24 outline-none">
                         <span class="text-gray-500 font-medium">-</span>
                         <input type="number" name="end_year" value="{{ request('end_year', '2026') }}" placeholder="Akhir" class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-24 outline-none">
                     </div>
 
+                    <!-- Pencarian -->
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari NIM/Nama/Judul..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48 outline-none">
                     
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                         Filter Data
                     </button>
                     
-                    @if(request('search') || request('prodi') || request('start_year') != '2015' || request('end_year') != '2026')
-                        <a href="{{ url('/skripsi') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-                            Reset
-                        </a>
+                    @if(request('search') || request('prodi') || request('start_year') != '2016' || request('end_year') != '2026')
+                        <a href="{{ url('/skripsi') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">Reset</a>
                     @endif
                 </form>
             </div>
@@ -88,7 +84,9 @@
                                 <div class="text-gray-500 text-xs mt-0.5">Pembimbing: {{ $skripsi->Dosen_Pembimbing }}</div>
                             </td>
                             <td class="p-4">
-                                <div class="text-gray-900">{{ $skripsi->Fakultas }}</div>
+                                <div class="text-gray-900 font-medium">{{ $skripsi->Fakultas }}</div>
+                                <!-- Baris baru untuk menampilkan Nama Prodi hasil mapping -->
+                                <div class="text-gray-600 text-xs mt-0.5">Prodi: {{ $skripsi->Nama_Prodi }}</div>
                                 <div class="text-gray-500 text-xs mt-0.5">Tahun: {{ $skripsi->lastmod_year }}</div>
                             </td>
                             <td class="p-4 text-center">
@@ -120,16 +118,21 @@
         const dataValues = {!! json_encode($chartValues) !!};
 
         new Chart(ctx, {
-            type: 'bar',
+            type: 'line', // <-- Kunci utama yang mengubahnya menjadi grafik garis
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Jumlah Skripsi',
                     data: dataValues,
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(37, 99, 235, 1)',
-                    borderWidth: 1,
-                    borderRadius: 4
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)', // Warna transparan untuk area bawah garis
+                    borderColor: 'rgba(37, 99, 235, 1)', // Warna utama garis (biru solid)
+                    borderWidth: 3, // Ketebalan garis
+                    pointBackgroundColor: '#ffffff', // Warna tengah titik data
+                    pointBorderColor: 'rgba(37, 99, 235, 1)', // Warna pinggiran titik data
+                    pointBorderWidth: 2,
+                    pointRadius: 4, // Ukuran titik data
+                    tension: 0.4, // <-- Menambahkan efek lengkungan halus pada garis (smooth curve)
+                    fill: true // <-- Mengisi warna di bawah garis (bisa diubah jadi false jika ingin garisnya saja)
                 }]
             },
             options: {

@@ -10,26 +10,43 @@ class SkripsiController extends Controller
 {
     public function index(Request $request) 
     {
-        // 1. Tangkap semua input dari form UI
+        // 1. Tangkap Input dari User (Gabungan filter rentang tahun milikmu dan prodi milik Reyhan)
         $search = $request->input('search');
-        $prodi = $request->input('prodi');
-        $start_year = $request->input('start_year', '2015'); // Tahun bawaan dari Pak Asharul
+        $selectedProdi = $request->input('prodi');
+        $start_year = $request->input('start_year', '2016');
         $end_year = $request->input('end_year', '2026');
 
-        // 2. Siapkan pondasi kondisi SQL untuk Rentang Tahun
-        $whereClause = " WHERE e.date_year BETWEEN :start_year AND :end_year ";
+        // 2. Kamus Prodi dari Reyhan (Hanya untuk UI dan mempercantik tabel)
+        $prodiMap = [
+            'B100' => 'S1 Manajemen',
+            'B200' => 'S1 Akuntansi',
+            'B300' => 'S1 Ekonomi Pembangunan',
+            'C100' => 'S1 Ilmu Hukum',
+            'D100' => 'S1 Teknik Sipil',
+            'D200' => 'S1 Teknik Mesin',
+            'D300' => 'S1 Teknik Arsitektur',
+            'D400' => 'S1 Teknik Elektro',
+            'D500' => 'S1 Teknik Kimia',
+            'D600' => 'S1 Teknik Industri',
+            'J500' => 'S1 Kedokteran',
+            'K100' => 'S1 Farmasi',
+            'L100' => 'S1 Ilmu Komunikasi',
+            'L200' => 'S1 Teknik Informatika',
+            // Tambahkan prodi lain dari kode Reyhan di sini sesuai kebutuhan
+        ];
+
+        // 3. Pondasi Kueri SQL (Mesin Utama dari Pak Asharul)
+        $whereClause = " WHERE e.lastmod_year BETWEEN :start_year AND :end_year ";
         $bindings = [
             'start_year' => $start_year,
             'end_year' => $end_year,
         ];
 
-        // 3. Jika user memilih Prodi spesifik, tambahkan ke SQL
-        if ($prodi) {
+        if ($selectedProdi) {
             $whereClause .= " AND ed.divisions = :prodi ";
-            $bindings['prodi'] = $prodi;
+            $bindings['prodi'] = $selectedProdi;
         }
 
-        // 4. Jika user mengetik kata kunci pencarian, tambahkan ke SQL
         if ($search) {
             $whereClause .= " AND (
                 e.title LIKE :search1 
@@ -42,7 +59,7 @@ class SkripsiController extends Controller
             $bindings['search3'] = $searchTerm;
         }
 
-        // 5. Eksekusi Query
+        // 4. Eksekusi Kueri Optimal milikmu
         $dataSkripsi = DB::select("
             SELECT 
                 CONCAT('http://eprints.ums.ac.id/', e.eprintid) AS Link,
@@ -64,7 +81,7 @@ class SkripsiController extends Controller
                     ELSE 'Lainnya'
                 END AS Fakultas,
 
-                e.date_year AS lastmod_year, /* Disamakan aliasnya agar frontend tidak error */
+                e.lastmod_year, 
                 
                 CASE 
                     WHEN e.eprint_status = 'archive' THEN 'Publish' 
@@ -90,14 +107,13 @@ class SkripsiController extends Controller
                 WHERE ec.pos = 1 
             ) AS dosen ON dosen.eprintid = ed.eprintid
 
-            /* Masukkan seluruh kondisi dinamis yang sudah kita rakit di atas ke sini */
             $whereClause
 
             GROUP BY 
                 ed.divisions, 
                 Fakultas,
                 e.eprintid,
-                e.date_year, 
+                e.lastmod_year, 
                 e.eprint_status, 
                 e.id_number, 
                 e.title,
@@ -109,14 +125,23 @@ class SkripsiController extends Controller
                 e.eprint_status ASC;
         ", $bindings);
 
-        $collection = collect($dataSkripsi);
+        // 5. Ubah hasil menjadi Collection dan tambahkan Nama Prodi dari kamus Reyhan
+        $collection = collect($dataSkripsi)->map(function ($item) use ($prodiMap) {
+            $code = strtoupper(trim($item->Kode_Prodi ?? ''));
+            // Jika ada di kamus, pakai namanya. Jika tidak, tampilkan kodenya saja
+            $item->Nama_Prodi = $prodiMap[$code] ?? $item->Kode_Prodi; 
+            return $item;
+        });
         
-        $grafikData = $collection->groupBy('Fakultas')->map->count();
+        // 6. Data Grafik (Sorting 'Lainnya' ke ujung kanan)
+        $grafikData = $collection->groupBy('Fakultas')->map->count()->sortBy(function ($jumlah, $namaFakultas) {
+            return $namaFakultas === 'Lainnya' ? 'ZZZ' : $namaFakultas;
+        });
         
         $chartLabels = $grafikData->keys()->toArray();
         $chartValues = $grafikData->values()->toArray();
-        // ------------------------------
 
+        // 7. Paginasi
         $perPage = 10;
         $currentPage = request()->input('page', 1);
 
@@ -131,7 +156,8 @@ class SkripsiController extends Controller
         return view('skripsi.index', [
             'dataSkripsi' => $paginatedSkripsi,
             'chartLabels' => $chartLabels,
-            'chartValues' => $chartValues
+            'chartValues' => $chartValues,
+            'prodiMap' => $prodiMap // Mengirim kamus ke UI
         ]);
     }
 }
